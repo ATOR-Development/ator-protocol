@@ -7,7 +7,6 @@
 set -o errexit
 
 ATOR_PLATFORMS="${ATOR_PLATFORMS:-linux/arm64,linux/amd64}"
-ATOR_ROOT="${ATOR_ROOT:-..}"
 ATOR_BUILD_DIR="${ATOR_BUILD_DIR:-build}"
 
 if [ ! -f 'Dockerfile' ]; then
@@ -16,7 +15,7 @@ if [ ! -f 'Dockerfile' ]; then
 fi
 
 # Build images for specified platforms
-docker buildx build -f Dockerfile --platform $ATOR_PLATFORMS -t ator-protocol $ATOR_ROOT
+docker buildx build -f Dockerfile --platform $ATOR_PLATFORMS -t ator-protocol .
 
 IFS=', ' read -r -a platforms <<< "$ATOR_PLATFORMS"
 
