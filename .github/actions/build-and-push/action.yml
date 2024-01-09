@@ -4,12 +4,17 @@ inputs:
     required: true
   docker-password:
     required: true
-  docker-image:
+  docker-base-repo:
+    required: true
+  docker-tag:
     required: true
   docker-platform:
     required: true
   version:
     required: true
+  push:
+    required: false  
+    default: true  
 
 runs:
   using: "composite"
@@ -28,8 +33,8 @@ runs:
       with:
         context: ./docker/
         file: ./docker/Dockerfile
-        push: true
-        tags: ${{ inputs.docker-image }}
+        push: ${{ inputs.push }}
+        tags: ${{ inputs.docker-base-repo }}:${{ inputs.docker-tag }},${{ inputs.docker-base-repo }}:${{ github.sha }}
         platforms: ${{ inputs.docker-platform }}
         build-args: |
           ANON_VER=${{ inputs.version }}

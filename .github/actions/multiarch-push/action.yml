@@ -26,5 +26,11 @@ runs:
       run: |
         docker buildx imagetools create \
           -t ${{ inputs.docker-base-repo }}:${{ inputs.docker-tag }} \
-          ${{ inputs.docker-base-repo }}-amd64:${{ inputs.docker-tag }} \
-          ${{ inputs.docker-base-repo }}-arm64:${{ inputs.docker-tag }}
+             ${{ inputs.docker-base-repo }}-amd64:${{ inputs.docker-tag }} \
+             ${{ inputs.docker-base-repo }}-arm64:${{ inputs.docker-tag }} 
+        docker buildx imagetools create \
+          -t ${{ inputs.docker-base-repo }}:${{ github.sha}} \
+             ${{ inputs.docker-base-repo }}-amd64:${{ github.sha }} \
+             ${{ inputs.docker-base-repo }}-arm64:${{ github.sha }} 
+
+

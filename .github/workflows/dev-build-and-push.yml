@@ -1,11 +1,14 @@
-name: Build Docker Images
+name:  Dev Build and Push Docker Images
 
 on:
-  pull_request:
+  push:
     branches:
       - development
-      - main
+      - ator-26-cicd
   workflow_dispatch:
+    
+env:
+  image-tag: ${{ github.event_name == 'push' && 'latest' || 'latest-manual' }}
 
 jobs:
   build-and-push:
@@ -28,7 +31,20 @@ jobs:
           docker-username: ${{ secrets.DOCKER_USERNAME }}
           docker-password: ${{ secrets.DOCKER_PASSWORD }}
           docker-base-repo: ${{ secrets.DOCKER_BASE_REPO_DEV }}-${{ matrix.platform.image-suffix }}
-          docker-tag: latest-pr
+          docker-tag: ${{ env.image-tag }}
           docker-platform: ${{ matrix.platform.name }}
           version: ${{ github.sha }}
-          push: false
+
+  multiarch-push:
+    runs-on: arm64
+    needs: build-and-push
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      - name: Multiarch push
+        uses: ./.github/actions/multiarch-push
+        with:
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-password: ${{ secrets.DOCKER_PASSWORD }}
+          docker-base-repo: ${{ secrets.DOCKER_BASE_REPO_DEV }}
+          docker-tag: ${{ env.image-tag }}
