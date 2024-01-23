@@ -1,0 +1,39 @@
+name: 'Deploy Docker Images'
+inputs:
+  image-tag:
+    required: true
+  nomad-job-file:
+    required: true
+  health-checks:
+    required: true  
+ 
+runs:
+  using: "composite"
+  steps:
+    - name: Deploy new version 
+      env:
+        NOMAD_CACERT: operations/admin-ui-ca.crt
+        NOMAD_TOKEN: ${{ secrets.NOMAD_TOKEN_ATOR_NETWORK_DEPLOY }}
+        NOMAD_ADDR: ${{ secrets.NOMAD_DEPLOY_ADDR }}
+        CONSUL_CACERT: operations/admin-ui-ca.crt
+        CONSUL_HTTP_TOKEN: ${{ secrets.CONSUL_HTTP_TOKEN_ATOR_NETWORK_DEPLOY }}
+        CONSUL_ADDR: ${{ secrets.CONSUL_DEPLOY_ADDR }}
+      run: |
+        #curl -L https://releases.hashicorp.com/levant/0.3.2/levant_0.3.2_linux_amd64.zip -o levant.zip
+        #unzip levant.zip
+        #[[ -n $(grep "dev" deploy-vars.json) ]] && ./levant render -var-file="deploy-vars.json" -consul-address=$CONSUL_ADDR -out runtime-job.hcl operations/warp-dre-node-dev.hcl
+        #[[ -n $(grep "stage" deploy-vars.json) ]] && ./levant render -var-file="deploy-vars.json" -consul-address=$CONSUL_ADDR -out runtime-job.hcl operations/warp-dre-node-stage.hcl
+        #[[ -z $(grep "stage" deploy-vars.json) && -z $(grep "dev" deploy-vars.json) ]] && ./levant render -var-file="deploy-vars.json" -consul-address=$CONSUL_ADDR -out runtime-job.hcl operations/warp-dre-node-live.hcl
+
+        sed -i 's/PLACEIMAGETAGHERE/${{ inputs.image-tag }}/g' operations/${{ inputs.nomad-job-file }}
+        curl -L https://releases.hashicorp.com/nomad/1.6.3/nomad_1.6.3_linux_amd64.zip -o nomad.zip
+        unzip nomad.zip
+        ./nomad job run operations/anon-da-node-dev.hcl
+    - name: Check health
+      uses: jtalk/url-health-check-action@v3
+      with:
+        url: ${{ health-checks }}
+        follow-redirect: false # Optional, defaults to "false"
+        max-attempts: 3 # Optional, defaults to 1
+        retry-delay: 10s # Optional, only applicable to max-attempts > 1
+        retry-all: true # Optional, defaults to "false"
