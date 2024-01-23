@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - '*'
+    branches:
+      - main
+      - development
   pull_request:
     branches:
       - main
