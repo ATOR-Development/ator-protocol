@@ -9,7 +9,7 @@ bash gencert.sh da3 49.13.145.234 ATORDAuswlive
 
 bash uploadcert.sh da1 067a42a8-d8fe-8b19-5851-43079e0eabb4 49.13.145.234 ATORDAeuclive live
 bash uploadcert.sh da2 16be0723-edc1-83c4-6c02-193d96ec308a 5.161.108.187 ATORDAuselive live
-bash uploadcert.sh da3 e6e0baed-8402-fd5c-7a15-8dd49e7b60d9 49.13.145.234 ATORDAuswlive live
+bash uploadcert.sh da3 e6e0baed-8402-fd5c-7a15-8dd49e7b60d9 5.78.90.106 ATORDAuswlive live
 
 # Move DA folders and script to server, login, run script
 # bash uploadsecrets.sh da1 067a42a8-d8fe-8b19-5851-43079e0eabb4 live
