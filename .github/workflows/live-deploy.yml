@@ -1,0 +1,34 @@
+name: Live Deploy
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+env:
+  image-name: ${{ secrets.DOCKER_BASE_REPO_LIVE }}
+  image-tag: ${{ github.event_name == 'workflow_call' && 'latest' || github.sha }}
+  da-1-hc-url: http://49.13.145.234:9230/tor/status-vote/current/consensus
+  da-2-hc-url: http://5.161.108.187:9230/tor/status-vote/current/consensus
+  da-3-hc-url: http://5.78.90.106:9230/tor/status-vote/current/consensus
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Deploy new version 
+        uses: ./.github/actions/deploy
+        with:
+          image-tag: ${{ env.image-tag }}
+          nomad-job-file: anon-da-node-live.hcl
+          health-checks: "${{ env.da-1-hc-url }}|${{ env.da-2-hc-url }}|${{ env.da-3-hc-url }}"
+          nomad-cacert: operations/admin-ui-ca.crt
+          nomad-token: ${{ secrets.NOMAD_TOKEN_ATOR_NETWORK_DEPLOY }}
+          nomad-addr: ${{ secrets.NOMAD_DEPLOY_ADDR }}
+          consul-cacert: operations/admin-ui-ca.crt
+          consul-http-token: ${{ secrets.CONSUL_HTTP_TOKEN_ATOR_NETWORK_DEPLOY }}
+          consul-addr: ${{ secrets.CONSUL_DEPLOY_ADDR }}

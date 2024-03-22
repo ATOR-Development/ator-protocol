@@ -1,0 +1,61 @@
+name: Stage Build and Push Docker Images
+
+on:
+  push:
+    tags:
+      - 'v*.*.*.*'
+  workflow_dispatch:
+
+env:
+  image-tag: ${{ github.event_name == 'push' && (github.ref_name) || 'latest-manual' }}
+
+jobs:
+  build-and-push:
+    runs-on: ${{ matrix.platform.runs-on }}
+    strategy:
+      matrix:
+        platform:
+          - name: linux/amd64
+            image-suffix: amd64
+            runs-on: ubuntu-latest
+          - name: linux/arm64
+            image-suffix: arm64
+            runs-on: arm64
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      - name: Build and push
+        uses: ./.github/actions/build-and-push
+        with:
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-password: ${{ secrets.DOCKER_PASSWORD }}
+          docker-base-repo: ${{ secrets.DOCKER_BASE_REPO_LIVE }}-${{ matrix.platform.image-suffix }}
+          docker-tag: ${{ env.image-tag }}
+          docker-platform: ${{ matrix.platform.name }}
+          version: ${{ github.sha }}
+          environment: live
+          push-latest: true
+
+  multiarch-push:
+    runs-on: arm64
+    needs: build-and-push
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      - name: Multiarch push
+        uses: ./.github/actions/multiarch-push
+        with:
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-password: ${{ secrets.DOCKER_PASSWORD }}
+          docker-base-repo: ${{ secrets.DOCKER_BASE_REPO_LIVE }}
+          docker-tag: ${{ env.image-tag }}
+          push-latest: true
+
+  deploy:
+    needs: multiarch-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke workflow without inputs
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Live Deploy

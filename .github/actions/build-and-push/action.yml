@@ -15,8 +15,11 @@ inputs:
   environment:
     required: true
   push:
-    required: false  
-    default: true  
+    required: false
+    default: true
+  push-latest:
+    required: false
+    default: false
 
 runs:
   using: "composite"
@@ -41,3 +44,11 @@ runs:
         build-args: |
           ANON_VER=${{ inputs.version }}
           ANON_ENV=${{ inputs.environment }}
+
+    - name: Push latest
+      if: ${{ inputs.push-latest == true }}
+      shell: bash
+      run: |
+        docker buildx imagetools create \
+          -t ${{ inputs.docker-base-repo }}:${{ github.sha }} \
+             ${{ inputs.docker-base-repo }}:latest

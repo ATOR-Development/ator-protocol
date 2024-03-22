@@ -1,11 +1,11 @@
 #TODO: use templating to avoid copypaste
 
-job "ator-dir-auth-stage" {
+job "ator-dir-auth-live" {
   datacenters = ["ator-fin"]
   type = "service"
   namespace = "ator-network"
 
-  group "dir-auth-stage-group" {
+  group "dir-auth-live-group" {
     count = 3
 
     spread {
@@ -24,43 +24,43 @@ job "ator-dir-auth-stage" {
 
     network  {
       port "orport" {
-        static = 9101
+        static = 9201
       }
       port "dirport" {
-        static = 9130
+        static = 9230
       }
 
     }
 
-    volume "dir-auth-stage" {
+    volume "dir-auth-live" {
       type      = "host"
       read_only = false
-      source    = "dir-auth-stage"
+      source    = "dir-auth-live"
     }
 
-    volume "sbws-stage" {
+    volume "sbws-live" {
       type      = "host"
       read_only = false
-      source    = "sbws-stage"
+      source    = "sbws-live"
     }
 
-    task "dir-auth-stage-task" {
+    task "dir-auth-live-task" {
       driver = "docker"
 
       volume_mount {
-        volume      = "dir-auth-stage"
+        volume      = "dir-auth-live"
         destination = "/var/lib/anon/"
         read_only   = false
       }
 
       volume_mount {
-        volume      = "sbws-stage"
+        volume      = "sbws-live"
         destination = "/var/lib/sbws/"
         read_only   = false
       }
 
       config {
-        image = "svforte/anon-stage:PLACEIMAGETAGHERE"
+        image = "svforte/anon:PLACEIMAGETAGHERE"
         ports = ["orport", "dirport"]
         volumes = [
           "local/anonrc:/etc/anon/anonrc",
@@ -80,50 +80,50 @@ job "ator-dir-auth-stage" {
       template {
         change_mode = "noop"
         data = <<EOH
-           {{ key (env `node.unique.id` | printf `ator-network/stage/dir-auth-%s/authority_certificate`) }}
+           {{ key (env `node.unique.id` | printf `ator-network/live/dir-auth-%s/authority_certificate`) }}
         EOH
         destination = "secrets/anon/keys/authority_certificate"
       }
 
       template {
         change_mode = "noop"
-        data = "{{ with secret (env `node.unique.id` | printf `kv/ator-network/stage/dir-auth-%s`) }}{{ .Data.data.authority_identity_key}}{{end}}"
+        data = "{{ with secret (env `node.unique.id` | printf `kv/ator-network/live/dir-auth-%s`) }}{{ .Data.data.authority_identity_key}}{{end}}"
         destination = "secrets/anon/keys/authority_identity_key"
       }
 
       template {
         change_mode = "noop"
-        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/stage/dir-auth-%s`) }}{{.Data.data.authority_signing_key}}{{end}}"
+        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/live/dir-auth-%s`) }}{{.Data.data.authority_signing_key}}{{end}}"
         destination = "secrets/anon/keys/authority_signing_key"
       }
 
       template {
         change_mode = "noop"
-        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/stage/dir-auth-%s`) }}{{ base64Decode .Data.data.ed25519_master_id_secret_key_base64}}{{end}}"
+        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/live/dir-auth-%s`) }}{{ base64Decode .Data.data.ed25519_master_id_secret_key_base64}}{{end}}"
         destination = "secrets/anon/keys/ed25519_master_id_secret_key"
       }
 
       template {
         change_mode = "noop"
-        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/stage/dir-auth-%s`) }}{{ base64Decode .Data.data.ed25519_signing_secret_key_base64}}{{end}}"
+        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/live/dir-auth-%s`) }}{{ base64Decode .Data.data.ed25519_signing_secret_key_base64}}{{end}}"
         destination = "secrets/anon/keys/ed25519_signing_secret_key"
       }
 
       template {
         change_mode = "noop"
-        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/stage/dir-auth-%s`) }}{{ base64Decode .Data.data.secret_id_key_base64}}{{end}}"
+        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/live/dir-auth-%s`) }}{{ base64Decode .Data.data.secret_id_key_base64}}{{end}}"
         destination = "secrets/anon/keys/secret_id_key"
       }
 
       template {
         change_mode = "noop"
-        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/stage/dir-auth-%s`) }}{{ base64Decode .Data.data.secret_onion_key_base64}}{{end}}"
+        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/live/dir-auth-%s`) }}{{ base64Decode .Data.data.secret_onion_key_base64}}{{end}}"
         destination = "secrets/anon/keys/secret_onion_key"
       }
 
       template {
         change_mode = "noop"
-        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/stage/dir-auth-%s`) }}{{ base64Decode .Data.data.secret_onion_key_ntor_base64}}{{end}}"
+        data = "{{ with secret  (env `node.unique.id` | printf `kv/ator-network/live/dir-auth-%s`) }}{{ base64Decode .Data.data.secret_onion_key_ntor_base64}}{{end}}"
         destination = "secrets/anon/keys/secret_onion_key_ntor"
       }
 
@@ -138,14 +138,14 @@ AuthoritativeDirectory 1
 V3AuthoritativeDirectory 1
 
 # Server's public IP Address (usually automatic)
-Address {{ key (env "node.unique.id" | printf "ator-network/stage/dir-auth-%s/public_ipv4") }}
+Address {{ key (env "node.unique.id" | printf "ator-network/live/dir-auth-%s/public_ipv4") }}
 
 # Port to advertise for incoming Tor connections.
-ORPort 9101                  # common ports are 9101, 443
+ORPort 9201                  # common ports are 9001, 443
 #ORPort 1.1.1.1:9001
 
 # Mirror directory information for others (optional, not used on bridge)
-DirPort 9130                 # common ports are 9130, 80
+DirPort 9230                 # common ports are 9030, 80
 
 # Run Tor only as a server (no local applications)
 SocksPort 0
@@ -167,7 +167,7 @@ AuthDirMaxServersPerAddr 8
 
 ## If no Nickname or ContactInfo is set, docker-entrypoint will use
 ## the environment variables to add Nickname/ContactInfo below
-Nickname {{ key (env "node.unique.id" | printf "ator-network/stage/dir-auth-%s/nickname") }}
+Nickname {{ key (env "node.unique.id" | printf "ator-network/live/dir-auth-%s/nickname") }}
 ContactInfo atorv4@example.org
 
 V3BandwidthsFile /var/lib/sbws/v3bw/latest.v3bw
@@ -176,7 +176,7 @@ V3BandwidthsFile /var/lib/sbws/v3bw/latest.v3bw
       }
 
       service {
-        name = "dir-auth-stage"
+        name = "dir-auth-live"
         port = "dirport"
         check {
           name     = "dir auth alive"

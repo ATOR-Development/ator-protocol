@@ -4,7 +4,7 @@ dnl Copyright (c) 2007-2019, The Tor Project, Inc.
 dnl See LICENSE for licensing information
 
 AC_PREREQ([2.63])
-AC_INIT([anon],[0.4.9.0-dev])
+AC_INIT([anon],[0.4.9.1-git])
 AC_CONFIG_SRCDIR([src/app/main/anon_main.c])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -18,7 +18,7 @@ AC_DEFINE_UNQUOTED([CONFIG_FLAGS], ["$configure_flags"], [Flags passed to config
 # version number changes.  Tor uses it to make sure that it
 # only shuts down for missing "required protocols" when those protocols
 # are listed as required by a consensus after this date.
-AC_DEFINE(APPROX_RELEASE_DATE, ["2024-01-18"], # for 0.4.9.0-dev
+AC_DEFINE(APPROX_RELEASE_DATE, ["2024-03-13"], # for 0.4.9.1-git
           [Approximate date when this software was released. (Updated when the version changes.)])
 
 # "foreign" means we don't follow GNU package layout standards

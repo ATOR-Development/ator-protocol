@@ -15,10 +15,11 @@ on:
 env:
   DEBIAN_FRONTEND: noninteractive
 
-  # tags, main: stage
+  # tags: live
+  # main: stage
   # development: dev
-  # everything else (pr, etc.): unstable-dev
-  PKG_ENV: ${{ (github.ref == 'refs/heads/main' || github.ref_type == 'tag') && 'stage' || github.ref == 'refs/heads/development' && 'dev' || 'unstable-dev' }}
+  # everything else (pull request, etc.): unstable-dev
+  PKG_ENV: ${{ github.ref_type == 'tag' && 'live' || github.ref == 'refs/heads/main' && 'stage' || github.ref == 'refs/heads/development' && 'dev' || 'unstable-dev' }}
 
 jobs:
 

@@ -160,6 +160,9 @@ fetchers:
     - name: anon_stage_dockerhub
       owner: svforte
       repo: anon-stage
+    - name: anon_live_dockerhub
+      owner: svforte
+      repo: anon
   github_releases:
     - name: anon_dev_github_releases
       owner: ATOR-Development
@@ -169,6 +172,10 @@ fetchers:
       owner: ATOR-Development
       repo: ator-protocol
       assets_regexp: ^anon.+-stage-.+\.deb
+    - name: anon_live_github_releases
+      owner: ATOR-Development
+      repo: ator-protocol
+      assets_regexp: ^anon.+-live-.+\.deb
   nginx_access_log:
     - name: anon_dev_debian_repo
       access_log_path: "/alloc/data/access.log"
@@ -176,6 +183,9 @@ fetchers:
     - name: anon_stage_debian_repo
       access_log_path: "/alloc/data/access.log"
       access_log_regexp: '"GET /pool/.+anon_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-stage.+\.deb HTTP\/1\.1" 200'
+    - name: anon_live_debian_repo
+      access_log_path: "/alloc/data/access.log"
+      access_log_regexp: '"GET /pool/.+anon_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+-live.+\.deb HTTP\/1\.1" 200'
         EOH
         destination = "local/exporter.yml"
       }
@@ -249,6 +259,40 @@ fetchers:
       template {
         change_mode = "noop"
         data = <<EOH
+Origin: Anon
+Label: Anon
+Codename: anon-live-bookworm
+Architectures: amd64 arm64 source
+Components: main
+Description: Anon Debian Boookworm Live
+SignWith: YES
+
+Origin: Anon
+Label: Anon
+Codename: anon-live-bullseye
+Architectures: amd64 arm64 source
+Components: main
+Description: Anon Debian Bullseye Live
+SignWith: YES
+
+Origin: Anon
+Label: Anon
+Codename: anon-live-jammy
+Architectures: amd64 arm64 source
+Components: main
+DDebComponents: main
+Description: Anon Ubuntu Jammy Live
+SignWith: YES
+
+Origin: Anon
+Label: Anon
+Codename: anon-live-focal
+Architectures: amd64 arm64 source
+Components: main
+DDebComponents: main
+Description: Anon Ubuntu Focal Live
+SignWith: YES
+
 Origin: Anon
 Label: Anon
 Codename: anon-stage-bookworm
@@ -360,7 +404,7 @@ SignWith: YES
 Name: incoming
 IncomingDir: /data/debian/incoming
 TempDir: /tmp
-Allow: anon-stage-bookworm anon-stage-bullseye anon-stage-jammy anon-stage-focal anon-dev-bookworm anon-dev-bullseye anon-dev-jammy anon-dev-focal anon-unstable-dev-bookworm anon-unstable-dev-bullseye anon-unstable-dev-jammy anon-unstable-dev-focal
+Allow: anon-live-bookworm anon-live-bullseye anon-live-jammy anon-live-focal anon-stage-bookworm anon-stage-bullseye anon-stage-jammy anon-stage-focal anon-dev-bookworm anon-dev-bullseye anon-dev-jammy anon-dev-focal anon-unstable-dev-bookworm anon-unstable-dev-bullseye anon-unstable-dev-jammy anon-unstable-dev-focal
 Cleanup: on_deny on_error unused_files
         EOH
         destination = "local/incoming"
