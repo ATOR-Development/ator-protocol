@@ -296,18 +296,31 @@ tor_tls_get_error(tor_tls_t *tls, int r, int extra,
     case SSL_ERROR_WANT_WRITE:
       return TOR_TLS_WANTWRITE;
     case SSL_ERROR_SYSCALL:
-      if (extra&CATCH_SYSCALL)
+      if (extra & CATCH_SYSCALL)
         return TOR_TLS_SYSCALL_;
       if (r == 0) {
-        tor_log(severity, LD_NET, "TLS error: unexpected close while %s (%s)",
-            doing, SSL_state_string_long(tls->ssl));
+        // Log detailed information for unexpected close
+        tor_log(severity, LD_NET,
+                "Detailed log message with variables: r=%d, err=%d, state=%s, timestamp=%ld",
+                r, err, SSL_state_string_long(tls->ssl), time(NULL));
         tor_error = TOR_TLS_ERROR_IO;
       } else {
         int e = tor_socket_errno(tls->socket);
+        // Log detailed information for syscall error
         tor_log(severity, LD_NET,
-            "TLS error: <syscall error while %s> (errno=%d: %s; state=%s)",
-            doing, e, tor_socket_strerror(e),
-            SSL_state_string_long(tls->ssl));
+                "TLS error: <syscall error while %s> (errno=%d: %s; state=%s; r=%d; err=%d; socket=%d; timestamp=%ld)",
+                doing, e, tor_socket_strerror(e),
+                SSL_state_string_long(tls->ssl), r, err, tls->socket, time(NULL));
+
+        // Log additional SSL error queue information
+        unsigned long ssl_err;
+        while ((ssl_err = ERR_get_error()) != 0) {
+          char err_buf[256];
+          ERR_error_string_n(ssl_err, err_buf, sizeof(err_buf));
+          tor_log(severity, LD_NET,
+                  "Additional SSL error: %s", err_buf);
+        }
+
         tor_error = tor_errno_to_tls_error(e);
       }
       tls_log_errors(tls, severity, domain, doing);
