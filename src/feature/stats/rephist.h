@@ -192,6 +192,8 @@ uint64_t rep_hist_get_n_tcp_exhaustion(void);
 uint64_t rep_hist_get_n_read_limit_reached(void);
 uint64_t rep_hist_get_n_write_limit_reached(void);
 
+uint64_t rep_hist_get_drop_cell_received_count(void);
+
 #ifdef TOR_UNIT_TESTS
 struct hs_v2_stats_t;
 const struct hs_v2_stats_t *rep_hist_get_hs_v2_stats(void);

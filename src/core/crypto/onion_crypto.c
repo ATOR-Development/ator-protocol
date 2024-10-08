@@ -9,9 +9,9 @@
  * \brief Functions to handle different kinds of circuit extension crypto.
  *
  * In this module, we provide a set of abstractions to create a uniform
- * interface over the three circuit extension handshakes that Tor has used
- * over the years (TAP, CREATE_FAST, and ntor).  These handshakes are
- * implemented in onion_tap.c, onion_fast.c, and onion_ntor.c respectively.
+ * interface over the circuit extension handshakes that Tor has used
+ * over the years (CREATE_FAST, ntor, hs_ntor, and ntorv3).
+ * These handshakes are implemented in the onion_*.c modules.
  *
  * All[*] of these handshakes follow a similar pattern: a client, knowing
  * some key from the relay it wants to extend through, generates the
@@ -36,7 +36,6 @@
 #include "core/crypto/onion_fast.h"
 #include "core/crypto/onion_ntor.h"
 #include "core/crypto/onion_ntor_v3.h"
-#include "core/crypto/onion_tap.h"
 #include "feature/relay/router.h"
 #include "lib/crypt_ops/crypto_dh.h"
 #include "lib/crypt_ops/crypto_util.h"
@@ -98,8 +97,6 @@ onion_handshake_state_release(onion_handshake_state_t *state)
 {
   switch (state->tag) {
   case ONION_HANDSHAKE_TYPE_TAP:
-    crypto_dh_free(state->u.tap);
-    state->u.tap = NULL;
     break;
   case ONION_HANDSHAKE_TYPE_FAST:
     fast_handshake_state_free(state->u.fast);
@@ -139,18 +136,7 @@ onion_skin_create(int type,
 
   switch (type) {
   case ONION_HANDSHAKE_TYPE_TAP:
-    if (onion_skin_out_maxlen < TAP_ONIONSKIN_CHALLENGE_LEN)
-      return -1;
-    if (!node->onion_key)
-      return -1;
-
-    if (onion_skin_TAP_create(node->onion_key,
-                              &state_out->u.tap,
-                              (char*)onion_skin_out) < 0)
-      return -1;
-
-    r = TAP_ONIONSKIN_CHALLENGE_LEN;
-    break;
+    return -1;
   case ONION_HANDSHAKE_TYPE_FAST:
     if (fast_onionskin_create(&state_out->u.fast, onion_skin_out) < 0)
       return -1;
@@ -288,18 +274,7 @@ onion_skin_server_handshake(int type,
 
   switch (type) {
   case ONION_HANDSHAKE_TYPE_TAP:
-    if (reply_out_maxlen < TAP_ONIONSKIN_REPLY_LEN)
-      return -1;
-    if (onionskin_len != TAP_ONIONSKIN_CHALLENGE_LEN)
-      return -1;
-    if (onion_skin_TAP_server_handshake((const char*)onion_skin,
-                                        keys->onion_key, keys->last_onion_key,
-                                        (char*)reply_out,
-                                        (char*)keys_out, keys_out_len)<0)
-      return -1;
-    r = TAP_ONIONSKIN_REPLY_LEN;
-    memcpy(rend_nonce_out, reply_out+DH1024_KEY_LEN, DIGEST_LEN);
-    break;
+    return -1;
   case ONION_HANDSHAKE_TYPE_FAST:
     if (reply_out_maxlen < CREATED_FAST_LEN)
       return -1;
@@ -474,20 +449,7 @@ onion_skin_client_handshake(int type,
 
   switch (type) {
   case ONION_HANDSHAKE_TYPE_TAP:
-    if (reply_len != TAP_ONIONSKIN_REPLY_LEN) {
-      if (msg_out)
-        *msg_out = "TAP reply was not of the correct length.";
-      return -1;
-    }
-    if (onion_skin_TAP_client_handshake(handshake_state->u.tap,
-                                        (const char*)reply,
-                                        (char *)keys_out, keys_out_len,
-                                        msg_out) < 0)
-      return -1;
-
-    memcpy(rend_authenticator_out, reply+DH1024_KEY_LEN, DIGEST_LEN);
-
-    return 0;
+    return -1;
   case ONION_HANDSHAKE_TYPE_FAST:
     if (reply_len != CREATED_FAST_LEN) {
       if (msg_out)

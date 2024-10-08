@@ -331,6 +331,14 @@ command_process_create_cell(cell_t *cell, channel_t *chan)
     return;
   }
 
+  /* We no longer accept TAP, for any reason. */
+  if (create_cell->handshake_type == ONION_HANDSHAKE_TYPE_TAP) {
+    tor_free(create_cell);
+    /* TODO: Should we collect statistics here?  Should we log? */
+    circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_TORPROTOCOL);
+    return;
+  }
+
   /* Mark whether this circuit used TAP in case we need to use this
    * information for onion service statistics later on. */
   if (create_cell->handshake_type == ONION_HANDSHAKE_TYPE_FAST ||

@@ -2473,7 +2473,7 @@ circuit_get_open_circ_or_launch(entry_connection_t *conn,
             extend_info = extend_info_new(conn->chosen_exit_name+1,
                                           digest,
                                           NULL, /* Ed25519 ID */
-                                          NULL, NULL, /* onion keys */
+                                          NULL, /* onion keys */
                                           &addr, conn->socks_request->port,
                                           NULL,
                                           false);

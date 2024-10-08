@@ -280,6 +280,9 @@ static dns_stats_t dns_AAAA_stats;
 /** DNS query statistics store. It covers all type of queries. */
 static dns_stats_t dns_all_stats;
 
+/** Counter of the total number of DROP cell received. */
+static uint64_t relay_circ_n_drop_cell_received = 0;
+
 /** Return the point to the DNS statistics store. Ignore the type for now
  * because of a libevent problem. */
 static inline dns_stats_t *
@@ -2815,6 +2818,8 @@ rep_hist_padding_count_write(padding_type_t type)
   switch (type) {
     case PADDING_TYPE_DROP:
       padding_current.write_drop_cell_count++;
+      /* Padding stats get reset thus why we have two counters. */
+      relay_circ_n_drop_cell_received++;
       break;
     case PADDING_TYPE_CELL:
       padding_current.write_pad_cell_count++;
@@ -3020,6 +3025,13 @@ rep_hist_consensus_has_changed(const networkstatus_t *ns)
                             OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_DEFAULT,
                             OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_MIN,
                             OVERLOAD_ONIONSKIN_NTOR_PERIOD_SECS_MAX);
+}
+
+/** Relay Only: return the total number of DROP cell received. */
+uint64_t
+rep_hist_get_drop_cell_received_count(void)
+{
+  return relay_circ_n_drop_cell_received;
 }
 
 #ifdef TOR_UNIT_TESTS

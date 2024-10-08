@@ -30,7 +30,7 @@
 /** List of tokens recognized in microdescriptors */
 // clang-format off
 static token_rule_t microdesc_token_table[] = {
-  T1_START("onion-key",        K_ONION_KEY,        NO_ARGS,     NEED_KEY_1024),
+  T1_START("onion-key",        K_ONION_KEY,        NO_ARGS,     OPT_KEY_1024),
   T1("ntor-onion-key",         K_ONION_KEY_NTOR,   GE(1),       NO_OBJ ),
   T0N("id",                    K_ID,               GE(2),       NO_OBJ ),
   T0N("a",                     K_A,                GE(1),       NO_OBJ ),
@@ -200,14 +200,11 @@ microdesc_parse_fields(microdesc_t *md,
   }
 
   tok = find_by_keyword(tokens, K_ONION_KEY);
-  if (!crypto_pk_public_exponent_ok(tok->key)) {
+  if (tok && tok->key && !crypto_pk_public_exponent_ok(tok->key)) {
     log_warn(LD_DIR,
              "Relay's onion key had invalid exponent.");
     goto err;
   }
-  md->onion_pkey = tor_memdup(tok->object_body, tok->object_size);
-  md->onion_pkey_len = tok->object_size;
-  crypto_pk_free(tok->key);
 
   if ((tok = find_opt_by_keyword(tokens, K_ONION_KEY_NTOR))) {
     curve25519_public_key_t k;

@@ -760,6 +760,35 @@ test_md_parse_id_ed25519(void *arg)
   teardown_capture_of_logs();
 }
 
+static void
+test_md_parse_no_onion_key(void *arg)
+{
+  (void)arg;
+
+  /* A correct MD with no onion key. */
+  const char GOOD_MD[] =
+    "onion-key\n"
+    "ntor-onion-key AppBt6CSeb1kKid/36ototmFA24ddfW5JpjWPLuoJgs=\n"
+    "id ed25519 VGhpcyBpc24ndCBhY3R1YWxseSBhIHB1YmxpYyBrZXk\n";
+
+  smartlist_t *mds = NULL;
+
+  mds = microdescs_parse_from_string(GOOD_MD,
+                                     NULL, 1, SAVED_NOWHERE, NULL);
+  tt_assert(mds);
+  tt_int_op(smartlist_len(mds), OP_EQ, 1);
+  const microdesc_t *md = smartlist_get(mds, 0);
+  tt_mem_op(md->ed25519_identity_pkey, OP_EQ,
+            "This isn't actually a public key", ED25519_PUBKEY_LEN);
+
+ done:
+  if (mds) {
+    SMARTLIST_FOREACH(mds, microdesc_t *, m, microdesc_free(m));
+    smartlist_free(mds);
+  }
+  teardown_capture_of_logs();
+}
+
 static int mock_rgsbd_called = 0;
 static routerstatus_t *mock_rgsbd_val_a = NULL;
 static routerstatus_t *mock_rgsbd_val_b = NULL;
@@ -894,6 +923,7 @@ struct testcase_t microdesc_tests[] = {
   { "generate", test_md_generate, 0, NULL, NULL },
   { "parse", test_md_parse, 0, NULL, NULL },
   { "parse_id_ed25519", test_md_parse_id_ed25519, 0, NULL, NULL },
+  { "parse_no_onion_key", test_md_parse_no_onion_key, 0, NULL, NULL },
   { "reject_cache", test_md_reject_cache, TT_FORK, NULL, NULL },
   { "corrupt_desc", test_md_corrupt_desc, TT_FORK, NULL, NULL },
   END_OF_TESTCASES

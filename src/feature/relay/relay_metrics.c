@@ -13,6 +13,7 @@
 #include "core/or/or.h"
 #include "core/mainloop/connection.h"
 #include "core/mainloop/mainloop.h"
+#include "core/or/command.h"
 #include "core/or/congestion_control_common.h"
 #include "core/or/congestion_control_vegas.h"
 #include "core/or/congestion_control_flow.h"
@@ -55,6 +56,9 @@ static void fill_socket_values(void);
 static void fill_onionskins_values(void);
 static void fill_oom_values(void);
 static void fill_streams_values(void);
+static void fill_relay_circ_proto_violation(void);
+static void fill_relay_destroy_cell(void);
+static void fill_relay_drop_cell(void);
 static void fill_relay_flags(void);
 static void fill_tcp_exhaustion_values(void);
 static void fill_traffic_values(void);
@@ -226,6 +230,27 @@ static const relay_metrics_entry_t base_metrics[] =
     .help = "Relay reachability self-test status",
     .fill_fn = fill_reachability,
   },
+  {
+      .key = RELAY_METRICS_CIRC_DESTROY_CELL,
+      .type = METRICS_TYPE_COUNTER,
+      .name = METRICS_NAME(relay_destroy_cell_total),
+      .help = "Total number of DESTROY cell we received",
+      .fill_fn = fill_relay_destroy_cell,
+    },
+    {
+      .key = RELAY_METRICS_CIRC_PROTO_VIOLATION,
+      .type = METRICS_TYPE_COUNTER,
+      .name = METRICS_NAME(relay_circ_proto_violation_total),
+      .help = "Total number of circuit protocol violation",
+      .fill_fn = fill_relay_circ_proto_violation,
+    },
+    {
+      .key = RELAY_METRICS_CIRC_DROP_CELL,
+      .type = METRICS_TYPE_COUNTER,
+      .name = METRICS_NAME(relay_drop_cell_total),
+      .help = "Total number of DROP cell we received",
+      .fill_fn = fill_relay_drop_cell,
+    },
 };
 static const size_t num_base_metrics = ARRAY_LENGTH(base_metrics);
 
@@ -1240,6 +1265,46 @@ fill_reachability(void)
           metrics_format_label("family", af_to_string(AF_INET6)));
   metrics_store_entry_update(sentry,
                              v6_reachable);
+}
+
+/** Fill the metrics store for the RELAY_METRICS_CIRC_DESTROY_CELL counter. */
+static void
+fill_relay_destroy_cell(void)
+{
+  metrics_store_entry_t *sentry;
+  const relay_metrics_entry_t *rentry =
+    &base_metrics[RELAY_METRICS_CIRC_DESTROY_CELL];
+
+  sentry = metrics_store_add(the_store, rentry->type, rentry->name,
+                             rentry->help, 0, NULL);
+  metrics_store_entry_update(sentry,
+                             (int64_t) stats_n_destroy_cells_processed);
+}
+
+/** Fill the metrics store for the RELAY_METRICS_CIRC_DROP_CELL counter. */
+static void
+fill_relay_drop_cell(void)
+{
+  metrics_store_entry_t *sentry;
+  const relay_metrics_entry_t *rentry =
+    &base_metrics[RELAY_METRICS_CIRC_DROP_CELL];
+
+  sentry = metrics_store_add(the_store, rentry->type, rentry->name,
+                             rentry->help, 0, NULL);
+  metrics_store_entry_update(sentry, rep_hist_get_drop_cell_received_count());
+}
+
+/** Fill the metrics store for the RELAY_METRICS_CIRC_PROTO_VIOLATION. */
+static void
+fill_relay_circ_proto_violation(void)
+{
+  metrics_store_entry_t *sentry;
+  const relay_metrics_entry_t *rentry =
+    &base_metrics[RELAY_METRICS_CIRC_PROTO_VIOLATION];
+
+  sentry = metrics_store_add(the_store, rentry->type, rentry->name,
+                             rentry->help, 0, NULL);
+  metrics_store_entry_update(sentry, circ_n_proto_violation);
 }
 
 /** Reset the global store and fill it with all the metrics from base_metrics

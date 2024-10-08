@@ -14,7 +14,6 @@
 #include "app/config/config.h"
 #include "lib/crypt_ops/crypto_rand.h"
 #include "core/or/onion.h"
-#include "core/crypto/onion_tap.h"
 #include "core/crypto/onion_fast.h"
 #include "core/crypto/onion_ntor.h"
 #include "core/or/relay.h"
@@ -399,21 +398,6 @@ test_cfmt_create_cells(void *arg)
 
   /* === Let's try parsing some good cells! */
 
-  /* A valid create cell. */
-  memset(&cell, 0, sizeof(cell));
-  memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, TAP_ONIONSKIN_CHALLENGE_LEN);
-  cell.command = CELL_CREATE;
-  memcpy(cell.payload, b, TAP_ONIONSKIN_CHALLENGE_LEN);
-  tt_int_op(0, OP_EQ, create_cell_parse(&cc, &cell));
-  tt_int_op(CELL_CREATE, OP_EQ, cc.cell_type);
-  tt_int_op(ONION_HANDSHAKE_TYPE_TAP, OP_EQ, cc.handshake_type);
-  tt_int_op(TAP_ONIONSKIN_CHALLENGE_LEN, OP_EQ, cc.handshake_len);
-  tt_mem_op(cc.onionskin,OP_EQ, b, TAP_ONIONSKIN_CHALLENGE_LEN + 10);
-  tt_int_op(0, OP_EQ, create_cell_format(&cell2, &cc));
-  tt_int_op(cell.command, OP_EQ, cell2.command);
-  tt_mem_op(cell.payload,OP_EQ, cell2.payload, CELL_PAYLOAD_SIZE);
-
   /* A valid create_fast cell. */
   memset(&cell, 0, sizeof(cell));
   memset(b, 0, sizeof(b));
@@ -429,22 +413,6 @@ test_cfmt_create_cells(void *arg)
   tt_int_op(cell.command, OP_EQ, cell2.command);
   tt_mem_op(cell.payload,OP_EQ, cell2.payload, CELL_PAYLOAD_SIZE);
 
-  /* A valid create2 cell with a TAP payload */
-  memset(&cell, 0, sizeof(cell));
-  memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, TAP_ONIONSKIN_CHALLENGE_LEN);
-  cell.command = CELL_CREATE2;
-  memcpy(cell.payload, "\x00\x00\x00\xBA", 4); /* TAP, 186 bytes long */
-  memcpy(cell.payload+4, b, TAP_ONIONSKIN_CHALLENGE_LEN);
-  tt_int_op(0, OP_EQ, create_cell_parse(&cc, &cell));
-  tt_int_op(CELL_CREATE2, OP_EQ, cc.cell_type);
-  tt_int_op(ONION_HANDSHAKE_TYPE_TAP, OP_EQ, cc.handshake_type);
-  tt_int_op(TAP_ONIONSKIN_CHALLENGE_LEN, OP_EQ, cc.handshake_len);
-  tt_mem_op(cc.onionskin,OP_EQ, b, TAP_ONIONSKIN_CHALLENGE_LEN + 10);
-  tt_int_op(0, OP_EQ, create_cell_format(&cell2, &cc));
-  tt_int_op(cell.command, OP_EQ, cell2.command);
-  tt_mem_op(cell.payload,OP_EQ, cell2.payload, CELL_PAYLOAD_SIZE);
-
   /* A valid create2 cell with an ntor payload */
   memset(&cell, 0, sizeof(cell));
   memset(b, 0, sizeof(b));
@@ -454,22 +422,6 @@ test_cfmt_create_cells(void *arg)
   memcpy(cell.payload+4, b, NTOR_ONIONSKIN_LEN);
   tt_int_op(0, OP_EQ, create_cell_parse(&cc, &cell));
   tt_int_op(CELL_CREATE2, OP_EQ, cc.cell_type);
-  tt_int_op(ONION_HANDSHAKE_TYPE_NTOR, OP_EQ, cc.handshake_type);
-  tt_int_op(NTOR_ONIONSKIN_LEN, OP_EQ, cc.handshake_len);
-  tt_mem_op(cc.onionskin,OP_EQ, b, NTOR_ONIONSKIN_LEN + 10);
-  tt_int_op(0, OP_EQ, create_cell_format(&cell2, &cc));
-  tt_int_op(cell.command, OP_EQ, cell2.command);
-  tt_mem_op(cell.payload,OP_EQ, cell2.payload, CELL_PAYLOAD_SIZE);
-
-  /* A valid create cell with an ntor payload, in legacy format. */
-  memset(&cell, 0, sizeof(cell));
-  memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, NTOR_ONIONSKIN_LEN);
-  cell.command = CELL_CREATE;
-  memcpy(cell.payload, "ntorNTORntorNTOR", 16);
-  memcpy(cell.payload+16, b, NTOR_ONIONSKIN_LEN);
-  tt_int_op(0, OP_EQ, create_cell_parse(&cc, &cell));
-  tt_int_op(CELL_CREATE, OP_EQ, cc.cell_type);
   tt_int_op(ONION_HANDSHAKE_TYPE_NTOR, OP_EQ, cc.handshake_type);
   tt_int_op(NTOR_ONIONSKIN_LEN, OP_EQ, cc.handshake_len);
   tt_mem_op(cc.onionskin,OP_EQ, b, NTOR_ONIONSKIN_LEN + 10);
@@ -516,20 +468,6 @@ test_cfmt_created_cells(void *arg)
   cell_t cell2;
 
   (void)arg;
-
-  /* A good CREATED cell */
-  memset(&cell, 0, sizeof(cell));
-  memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, TAP_ONIONSKIN_REPLY_LEN);
-  cell.command = CELL_CREATED;
-  memcpy(cell.payload, b, TAP_ONIONSKIN_REPLY_LEN);
-  tt_int_op(0, OP_EQ, created_cell_parse(&cc, &cell));
-  tt_int_op(CELL_CREATED, OP_EQ, cc.cell_type);
-  tt_int_op(TAP_ONIONSKIN_REPLY_LEN, OP_EQ, cc.handshake_len);
-  tt_mem_op(cc.reply,OP_EQ, b, TAP_ONIONSKIN_REPLY_LEN + 10);
-  tt_int_op(0, OP_EQ, created_cell_format(&cell2, &cc));
-  tt_int_op(cell.command, OP_EQ, cell2.command);
-  tt_mem_op(cell.payload,OP_EQ, cell2.payload, CELL_PAYLOAD_SIZE);
 
   /* A good CREATED_FAST cell */
   memset(&cell, 0, sizeof(cell));
@@ -605,54 +543,6 @@ test_cfmt_extend_cells(void *arg)
   char *mem_op_hex_tmp = NULL;
 
   (void) arg;
-
-  /* Let's start with a simple EXTEND cell. */
-  memset(p, 0, sizeof(p));
-  memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, TAP_ONIONSKIN_CHALLENGE_LEN);
-  memcpy(p, "\x12\xf4\x00\x01\x01\x02", 6); /* 18 244 0 1 : 258 */
-  memcpy(p+6,b,TAP_ONIONSKIN_CHALLENGE_LEN);
-  memcpy(p+6+TAP_ONIONSKIN_CHALLENGE_LEN, "electroencephalogram", 20);
-  tt_int_op(0, OP_EQ, extend_cell_parse(&ec, RELAY_COMMAND_EXTEND,
-                                     p, 26+TAP_ONIONSKIN_CHALLENGE_LEN));
-  tt_int_op(RELAY_COMMAND_EXTEND, OP_EQ, ec.cell_type);
-  tt_str_op("18.244.0.1", OP_EQ, fmt_addr(&ec.orport_ipv4.addr));
-  tt_int_op(258, OP_EQ, ec.orport_ipv4.port);
-  tt_int_op(AF_UNSPEC, OP_EQ, tor_addr_family(&ec.orport_ipv6.addr));
-  tt_mem_op(ec.node_id,OP_EQ, "electroencephalogram", 20);
-  tt_int_op(cc->cell_type, OP_EQ, CELL_CREATE);
-  tt_int_op(cc->handshake_type, OP_EQ, ONION_HANDSHAKE_TYPE_TAP);
-  tt_int_op(cc->handshake_len, OP_EQ, TAP_ONIONSKIN_CHALLENGE_LEN);
-  tt_mem_op(cc->onionskin,OP_EQ, b, TAP_ONIONSKIN_CHALLENGE_LEN+20);
-  tt_int_op(0, OP_EQ, extend_cell_format(&p2_cmd, &p2_len, p2, &ec));
-  tt_int_op(p2_cmd, OP_EQ, RELAY_COMMAND_EXTEND);
-  tt_int_op(p2_len, OP_EQ, 26+TAP_ONIONSKIN_CHALLENGE_LEN);
-  tt_mem_op(p2,OP_EQ, p, RELAY_PAYLOAD_SIZE);
-
-  /* Let's do an ntor stuffed in a legacy EXTEND cell */
-  memset(p, 0, sizeof(p));
-  memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, NTOR_ONIONSKIN_LEN);
-  memcpy(p, "\x12\xf4\x00\x01\x01\x02", 6); /* 18 244 0 1 : 258 */
-  memcpy(p+6,"ntorNTORntorNTOR", 16);
-  memcpy(p+22, b, NTOR_ONIONSKIN_LEN);
-  memcpy(p+6+TAP_ONIONSKIN_CHALLENGE_LEN, "electroencephalogram", 20);
-  tt_int_op(0, OP_EQ, extend_cell_parse(&ec, RELAY_COMMAND_EXTEND,
-                                     p, 26+TAP_ONIONSKIN_CHALLENGE_LEN));
-  tt_int_op(RELAY_COMMAND_EXTEND, OP_EQ, ec.cell_type);
-  tt_str_op("18.244.0.1", OP_EQ, fmt_addr(&ec.orport_ipv4.addr));
-  tt_int_op(258, OP_EQ, ec.orport_ipv4.port);
-  tt_int_op(AF_UNSPEC, OP_EQ, tor_addr_family(&ec.orport_ipv6.addr));
-  tt_mem_op(ec.node_id,OP_EQ, "electroencephalogram", 20);
-  tt_int_op(cc->cell_type, OP_EQ, CELL_CREATE2);
-  tt_int_op(cc->handshake_type, OP_EQ, ONION_HANDSHAKE_TYPE_NTOR);
-  tt_int_op(cc->handshake_len, OP_EQ, NTOR_ONIONSKIN_LEN);
-  tt_mem_op(cc->onionskin,OP_EQ, b, NTOR_ONIONSKIN_LEN+20);
-  tt_int_op(0, OP_EQ, extend_cell_format(&p2_cmd, &p2_len, p2, &ec));
-  tt_int_op(p2_cmd, OP_EQ, RELAY_COMMAND_EXTEND);
-  tt_int_op(p2_len, OP_EQ, 26+TAP_ONIONSKIN_CHALLENGE_LEN);
-  tt_mem_op(p2,OP_EQ, p, RELAY_PAYLOAD_SIZE);
-  tt_int_op(0, OP_EQ, create_cell_format_relayed(&cell, cc));
 
   /* Now let's do a minimal ntor EXTEND2 cell. */
   memset(&ec, 0xff, sizeof(ec));
@@ -895,23 +785,6 @@ test_cfmt_extended_cells(void *arg)
   char *mem_op_hex_tmp = NULL;
 
   (void) arg;
-
-  /* Try a regular EXTENDED cell. */
-  memset(&ec, 0xff, sizeof(ec));
-  memset(p, 0, sizeof(p));
-  memset(b, 0, sizeof(b));
-  crypto_rand((char*)b, TAP_ONIONSKIN_REPLY_LEN);
-  memcpy(p,b,TAP_ONIONSKIN_REPLY_LEN);
-  tt_int_op(0, OP_EQ, extended_cell_parse(&ec, RELAY_COMMAND_EXTENDED, p,
-                                       TAP_ONIONSKIN_REPLY_LEN));
-  tt_int_op(RELAY_COMMAND_EXTENDED, OP_EQ, ec.cell_type);
-  tt_int_op(cc->cell_type, OP_EQ, CELL_CREATED);
-  tt_int_op(cc->handshake_len, OP_EQ, TAP_ONIONSKIN_REPLY_LEN);
-  tt_mem_op(cc->reply,OP_EQ, b, TAP_ONIONSKIN_REPLY_LEN);
-  tt_int_op(0, OP_EQ, extended_cell_format(&p2_cmd, &p2_len, p2, &ec));
-  tt_int_op(RELAY_COMMAND_EXTENDED, OP_EQ, p2_cmd);
-  tt_int_op(TAP_ONIONSKIN_REPLY_LEN, OP_EQ, p2_len);
-  tt_mem_op(p2,OP_EQ, p, sizeof(p2));
 
   /* Try an EXTENDED2 cell */
   memset(&ec, 0xff, sizeof(ec));

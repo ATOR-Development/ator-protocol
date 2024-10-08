@@ -34,8 +34,6 @@ struct extend_info_t {
   /** IP/Port values for this hop's ORPort(s).  Any unused values are set
    * to a null address. */
   tor_addr_port_t orports[EXTEND_INFO_MAX_ADDRS];
-  /** TAP onion key for this hop. */
-  crypto_pk_t *onion_key;
   /** Ntor onion key for this hop. */
   curve25519_public_key_t curve25519_onion_key;
   /** True if this hop is to be used as an _exit_,

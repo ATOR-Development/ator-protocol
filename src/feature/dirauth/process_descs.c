@@ -762,6 +762,16 @@ dirserv_add_descriptor(routerinfo_t *ri, const char **msg, const char *source)
   log_info(LD_DIR, "Assessing new descriptor: %s: %s",
            ri->nickname, ri->platform);
 
+  /* For now, TAP keys are still required. */
+  if (! ri->tap_onion_pkey) {
+    log_info(LD_DIRSERV, "Rejecting descriptor from %s (source: %s); "
+             "it has no TAP key.",
+             router_describe(ri), source);
+    *msg = "Missing TAP key in descriptor.";
+    r = ROUTER_AUTHDIR_REJECTS;
+    goto fail;
+  }
+
   /* Check whether this descriptor is semantically identical to the last one
    * from this server.  (We do this here and not in router_add_to_routerlist
    * because we want to be able to accept the newest router descriptor that

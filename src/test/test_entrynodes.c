@@ -1942,8 +1942,10 @@ test_entry_guard_select_for_circuit_no_confirmed(void *arg)
   tt_ptr_op(g2, OP_EQ, g);
 
   /* But if we impose a restriction, we don't get the same guard */
+  get_options_mutable()->EnforceDistinctSubnets = 0;
   rst = guard_create_exit_restriction((uint8_t*)g->identity);
   g2 = select_entry_guard_for_circuit(gs, GUARD_USAGE_TRAFFIC, rst, &state);
+  tt_assert(g2);
   tt_ptr_op(g2, OP_NE, g);
 
  done:

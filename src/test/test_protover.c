@@ -329,7 +329,7 @@ test_protover_supports_version(void *arg)
  * headers. */
 #define PROTOVER_LINKAUTH_V1 1
 #define PROTOVER_LINKAUTH_V2 2
-#define PROTOVER_RELAY_V1 1
+#define PROTOVER_RELAY_V2 2
 
 /* Deprecated HSIntro versions */
 #define PROTOVER_HS_INTRO_DEPRECATED_1 1
@@ -397,7 +397,7 @@ test_protover_supported_protocols(void *arg)
   /* Relay protovers do not appear anywhere in the code. */
   tt_assert(protocol_list_supports_protocol(supported_protocols,
                                             PRT_RELAY,
-                                            PROTOVER_RELAY_V1));
+                                            PROTOVER_RELAY_V2));
   tt_assert(protocol_list_supports_protocol(supported_protocols,
                                             PRT_RELAY,
                                             PROTOVER_RELAY_EXTEND2));

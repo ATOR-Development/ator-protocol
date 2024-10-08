@@ -11,7 +11,6 @@
 #include "orconfig.h"
 
 #include "core/or/or.h"
-#include "core/crypto/onion_tap.h"
 #include "core/crypto/relay_crypto.h"
 
 #include "lib/intmath/weakrng.h"
@@ -124,75 +123,6 @@ bench_aes(void)
            NANOCOUNT(start, end, iters*len));
   }
   crypto_cipher_free(c);
-}
-
-static void
-bench_onion_TAP(void)
-{
-  const int iters = 1<<9;
-  int i;
-  crypto_pk_t *key, *key2;
-  uint64_t start, end;
-  char os[TAP_ONIONSKIN_CHALLENGE_LEN];
-  char or[TAP_ONIONSKIN_REPLY_LEN];
-  crypto_dh_t *dh_out = NULL;
-
-  key = crypto_pk_new();
-  key2 = crypto_pk_new();
-  if (crypto_pk_generate_key_with_bits(key, 1024) < 0)
-    goto done;
-  if (crypto_pk_generate_key_with_bits(key2, 1024) < 0)
-    goto done;
-
-  reset_perftime();
-  start = perftime();
-  for (i = 0; i < iters; ++i) {
-    onion_skin_TAP_create(key, &dh_out, os);
-    crypto_dh_free(dh_out);
-  }
-  end = perftime();
-  printf("Client-side, part 1: %f usec.\n", NANOCOUNT(start, end, iters)/1e3);
-
-  onion_skin_TAP_create(key, &dh_out, os);
-  start = perftime();
-  for (i = 0; i < iters; ++i) {
-    char key_out[CPATH_KEY_MATERIAL_LEN];
-    onion_skin_TAP_server_handshake(os, key, NULL, or,
-                                    key_out, sizeof(key_out));
-  }
-  end = perftime();
-  printf("Server-side, key guessed right: %f usec\n",
-         NANOCOUNT(start, end, iters)/1e3);
-
-  start = perftime();
-  for (i = 0; i < iters; ++i) {
-    char key_out[CPATH_KEY_MATERIAL_LEN];
-    onion_skin_TAP_server_handshake(os, key2, key, or,
-                                    key_out, sizeof(key_out));
-  }
-  end = perftime();
-  printf("Server-side, key guessed wrong: %f usec.\n",
-         NANOCOUNT(start, end, iters)/1e3);
-
-  start = perftime();
-  for (i = 0; i < iters; ++i) {
-    crypto_dh_t *dh;
-    char key_out[CPATH_KEY_MATERIAL_LEN];
-    int s;
-    dh = crypto_dh_dup(dh_out);
-    s = onion_skin_TAP_client_handshake(dh, or, key_out, sizeof(key_out),
-                                        NULL);
-    crypto_dh_free(dh);
-    tor_assert(s == 0);
-  }
-  end = perftime();
-  printf("Client-side, part 2: %f usec.\n",
-         NANOCOUNT(start, end, iters)/1e3);
-
- done:
-  crypto_dh_free(dh_out);
-  crypto_pk_free(key);
-  crypto_pk_free(key2);
 }
 
 static void
@@ -754,7 +684,6 @@ static struct benchmark_t benchmarks[] = {
   ENT(siphash),
   ENT(digest),
   ENT(aes),
-  ENT(onion_TAP),
   ENT(onion_ntor),
   ENT(ed25519),
   ENT(rand),

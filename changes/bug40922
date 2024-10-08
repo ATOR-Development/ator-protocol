@@ -1,0 +1,5 @@
+  o Minor bugfixes (testing):
+    - Enabling TestingTorNetwork no longer forces fast hidden service
+      intro point rotation. This reduces noise and errors when
+      using hidden services with TestingTorNetwork enabled.
+      Fixes bug 40922; bugfix on 0.3.2.1-alpha.

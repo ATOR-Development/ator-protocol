@@ -410,11 +410,6 @@ get_intro_point_max_introduce2(void)
 static int32_t
 get_intro_point_min_lifetime(void)
 {
-#define MIN_INTRO_POINT_LIFETIME_TESTING 10
-  if (get_options()->TestingTorNetwork) {
-    return MIN_INTRO_POINT_LIFETIME_TESTING;
-  }
-
   /* The [0, 2147483647] range is quite large to accommodate anything we decide
    * in the future. */
   return networkstatus_get_param(NULL, "hs_intro_min_lifetime",
@@ -427,11 +422,6 @@ get_intro_point_min_lifetime(void)
 static int32_t
 get_intro_point_max_lifetime(void)
 {
-#define MAX_INTRO_POINT_LIFETIME_TESTING 30
-  if (get_options()->TestingTorNetwork) {
-    return MAX_INTRO_POINT_LIFETIME_TESTING;
-  }
-
   /* The [0, 2147483647] range is quite large to accommodate anything we decide
    * in the future. */
   return networkstatus_get_param(NULL, "hs_intro_max_lifetime",
@@ -2163,7 +2153,7 @@ build_all_descriptors(time_t now)
       continue;
     }
 
-    /* Reaching this point means we are pass bootup so at runtime. We should
+    /* Reaching this point means we are past bootup so at runtime. We should
      * *never* have an empty current descriptor. If the next descriptor is
      * empty, we'll try to build it for the next time period. This only
      * happens when we rotate meaning that we are guaranteed to have a new SRV
@@ -2185,7 +2175,7 @@ build_all_descriptors(time_t now)
 /** Randomly pick a node to become an introduction point but not present in the
  * given exclude_nodes list. The chosen node is put in the exclude list
  * regardless of success or not because in case of failure, the node is simply
- * unsusable from that point on.
+ * unusable from that point on.
  *
  * If direct_conn is set, try to pick a node that our local firewall/policy
  * allows us to connect to directly. If we can't find any, return NULL.
@@ -3038,13 +3028,6 @@ get_max_intro_circ_per_period(const hs_service_t *service)
   tor_assert(service);
   tor_assert(service->config.num_intro_points <=
              HS_CONFIG_V3_MAX_INTRO_POINTS);
-
-/** For a testing network, allow to do it for the maximum amount so circuit
- * creation and rotation and so on can actually be tested without limit. */
-#define MAX_INTRO_POINT_CIRCUIT_RETRIES_TESTING -1
-  if (get_options()->TestingTorNetwork) {
-    return MAX_INTRO_POINT_CIRCUIT_RETRIES_TESTING;
-  }
 
   num_wanted_ip = service->config.num_intro_points;
 

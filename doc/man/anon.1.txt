@@ -1017,7 +1017,7 @@ forward slash (/) in the configuration file and on the command line.
     equivalent option for directory connections, because all Tor client versions
     that support this option download directory documents via OR connections. +
 +
-    The only protocol supported right now 'haproxy'. This option is only for
+    The only protocol supported right now is 'haproxy'. This option is only for
     clients. (Default: none) +
 +
     The HAProxy version 1 proxy protocol is described in detail at
@@ -2812,17 +2812,16 @@ types of statistics that Tor relays collect and publish:
      +
     A relay is considered overloaded if at least one of these conditions is
     met:
-        - Onionskins are starting to be dropped.
+        - A certain ratio of ntor onionskins are dropped.
         - The OOM was invoked.
+        - TCP Port exhaustion.
 
-        - (Exit only) DNS timeout occurs X% of the time over Y seconds (values
-          controlled by consensus parameters, see param-spec.txt).
      +
     If ExtraInfoStatistics is enabled, it can also put two more specific
     overload lines in the extra-info document if at least one of these
     conditions is met:
-        - TCP Port exhaustion.
         - Connection rate limits have been reached (read and write side).
+        - File descriptors are exhausted.
 
 [[PaddingStatistics]] **PaddingStatistics** **0**|**1**::
     Relays and bridges only.
@@ -3136,7 +3135,7 @@ hard and are likely different for each service operator.
 Why is this not helping reachability of the service? Because the defenses are
 at the introduction point, an attacker can easily flood all introduction point
 rendering the service unavailable due to no client being able to pass through.
-But, the service itself is not overwhelmed with connetions allowing it to
+But, the service itself is not overwhelmed with connections allowing it to
 function properly for the few clients that were able to go through or other any
 services running on the same tor instance.
 
@@ -4125,7 +4124,7 @@ __DataDirectory__/**`stats/hidserv-stats`**::
     of what fraction of the traffic is hidden service rendezvous traffic, and
     approximately how many hidden services the relay has seen.
 
-__DataDirectory__/**networkstatus-bridges`**::
+__DataDirectory__/**`networkstatus-bridges`**::
     Only used by authoritative bridge directories. Contains information
     about bridges that have self-reported themselves to the bridge
     authority.

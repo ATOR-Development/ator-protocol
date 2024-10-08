@@ -1184,8 +1184,8 @@ dns_found_answer(const char *address, uint8_t query_type,
  * resolution.
  *
  * Do this by sending a RELAY_RESOLVED cell (if the pending stream had sent us
- * RELAY_RESOLVE cell), or by launching an exit connection (if the pending
- * stream had send us a RELAY_BEGIN cell).
+ * a RELAY_RESOLVE cell), or by launching an exit connection (if the pending
+ * stream had sent us a RELAY_BEGIN cell).
  */
 static void
 inform_pending_connections(cached_resolve_t *resolve)

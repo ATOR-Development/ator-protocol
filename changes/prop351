@@ -1,0 +1,7 @@
+  o Minor features (SOCKS):
+    - Detect invalid SOCKS5 username/password combinations according to
+      new extended parameters syntax.  (Currently, this rejects any
+      SOCKS5 username beginning with "<torS0X>", except for the username
+      "<torS0X>0". Such usernames are now reserved to communicate additional
+      parameters with other Tor implementations.)
+      Implements proposal 351.

@@ -211,13 +211,37 @@ set_onion_key(crypto_pk_t *k)
   mark_my_descriptor_dirty("set onion key");
 }
 
-/** Return the current onion key.  Requires that the onion key has been
- * loaded or generated. */
+/** Return the current TAP onion key.  Requires that the onion key has been
+ * loaded or generated.
+ *
+ * Note that this key is no longer used for anything; we only keep it around
+ * because (as of June 2024) other Tor instances all expect to find it in
+ * our routerdescs.
+ **/
 MOCK_IMPL(crypto_pk_t *,
 get_onion_key,(void))
 {
   tor_assert(onionkey);
   return onionkey;
+}
+
+/**
+ * Return true iff we should include our TAP onion key in our router
+ * descriptor.
+ */
+static int
+should_publish_tap_onion_key(void)
+{
+#define SHOULD_PUBLISH_TAP_MIN 0
+#define SHOULD_PUBLISH_TAP_MAX 1
+  /* Note that we err on the side of publishing. */
+#define SHOULD_PUBLISH_TAP_DFLT 1
+
+  return networkstatus_get_param(NULL,
+                                 "publish-dummy-tap-key",
+                                 SHOULD_PUBLISH_TAP_DFLT,
+                                 SHOULD_PUBLISH_TAP_MIN,
+                                 SHOULD_PUBLISH_TAP_MAX);
 }
 
 /** Store a full copy of the current onion key into *<b>key</b>, and a full
@@ -2138,9 +2162,12 @@ router_build_fresh_unsigned_routerinfo,(routerinfo_t **ri_out))
   ri->supports_tunnelled_dir_requests =
     directory_permits_begindir_requests(options);
   ri->cache_info.published_on = time(NULL);
-  /* get_onion_key() must invoke from main thread */
-  router_set_rsa_onion_pkey(get_onion_key(), &ri->onion_pkey,
-                            &ri->onion_pkey_len);
+
+  if (should_publish_tap_onion_key()) {
+    /* get_onion_key() must invoke from main thread */
+    router_set_rsa_onion_pkey(get_onion_key(), &ri->tap_onion_pkey,
+                              &ri->tap_onion_pkey_len);
+  }
 
   ri->onion_curve25519_pkey =
     tor_memdup(&get_current_curve25519_keypair()->pubkey,
@@ -2777,7 +2804,7 @@ router_dump_router_to_string(routerinfo_t *router,
   char published[ISO_TIME_LEN+1];
   char fingerprint[FINGERPRINT_LEN+1];
   char *extra_info_line = NULL;
-  size_t onion_pkeylen, identity_pkeylen;
+  size_t onion_pkeylen=0, identity_pkeylen;
   char *family_line = NULL;
   char *extra_or_address = NULL;
   const or_options_t *options = get_options();
@@ -2835,12 +2862,14 @@ router_dump_router_to_string(routerinfo_t *router,
   }
 
   /* PEM-encode the onion key */
-  rsa_pubkey = router_get_rsa_onion_pkey(router->onion_pkey,
-                                         router->onion_pkey_len);
-  if (crypto_pk_write_public_key_to_string(rsa_pubkey,
-                                           &onion_pkey,&onion_pkeylen)<0) {
-    log_warn(LD_BUG,"write onion_pkey to string failed!");
-    goto err;
+  rsa_pubkey = router_get_rsa_onion_pkey(router->tap_onion_pkey,
+                                         router->tap_onion_pkey_len);
+  if (rsa_pubkey) {
+    if (crypto_pk_write_public_key_to_string(rsa_pubkey,
+                                             &onion_pkey,&onion_pkeylen)<0) {
+      log_warn(LD_BUG,"write onion_pkey to string failed!");
+      goto err;
+    }
   }
 
   /* PEM-encode the identity key */
@@ -2851,7 +2880,7 @@ router_dump_router_to_string(routerinfo_t *router,
   }
 
   /* Cross-certify with RSA key */
-  if (tap_key && router->cache_info.signing_key_cert &&
+  if (tap_key && rsa_pubkey && router->cache_info.signing_key_cert &&
       router->cache_info.signing_key_cert->signing_key_included) {
     char buf[256];
     int tap_cc_len = 0;
@@ -2976,7 +3005,7 @@ router_dump_router_to_string(routerinfo_t *router,
                     "uptime %ld\n"
                     "bandwidth %d %d %d\n"
                     "%s%s"
-                    "onion-key\n%s"
+                    "%s%s"
                     "signing-key\n%s"
                     "%s%s"
                     "%s%s%s",
@@ -2997,7 +3026,8 @@ router_dump_router_to_string(routerinfo_t *router,
     extra_info_line ? extra_info_line : "",
     (options->DownloadExtraInfo || options->V3AuthoritativeDir) ?
                          "caches-extra-info\n" : "",
-    onion_pkey, identity_pkey,
+    onion_pkey?"onion-key\n":"", onion_pkey?onion_pkey:"",
+    identity_pkey,
     rsa_tap_cc_line ? rsa_tap_cc_line : "",
     ntor_cc_line ? ntor_cc_line : "",
     family_line,

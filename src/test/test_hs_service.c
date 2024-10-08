@@ -1605,7 +1605,6 @@ test_build_update_descriptors(void *arg)
     tt_int_op(ret, OP_EQ, 0);
     ri.onion_curve25519_pkey =
       tor_malloc_zero(sizeof(curve25519_public_key_t));
-    ri.onion_pkey = tor_malloc_zero(140);
     curve25519_public_key_generate(ri.onion_curve25519_pkey,
                                    &curve25519_secret_key);
     memset(ri.cache_info.identity_digest, 'A', DIGEST_LEN);
@@ -1631,7 +1630,6 @@ test_build_update_descriptors(void *arg)
   update_all_descriptors_intro_points(now);
   tor_free(node->ri->onion_curve25519_pkey); /* Avoid memleak. */
   tor_free(node->ri->cache_info.signing_key_cert);
-  tor_free(node->ri->onion_pkey);
   expect_log_msg_containing("just picked 1 intro points and wanted 3 for next "
                             "descriptor. It currently has 0 intro points. "
                             "Launching ESTABLISH_INTRO circuit shortly.");

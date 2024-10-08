@@ -1192,7 +1192,7 @@ test_socks_hs_errors(void *arg)
   ocirc->build_state = tor_malloc_zero(sizeof(cpath_build_state_t));
   /* Code path will log this exit so build it. */
   ocirc->build_state->chosen_exit = extend_info_new("TestNickname", digest,
-                                                    NULL, NULL, NULL, &addr,
+                                                    NULL, NULL, &addr,
                                                     4242, NULL, false);
   /* Attach socks connection to this rendezvous circuit. */
   ocirc->p_streams = ENTRY_TO_EDGE_CONN(socks_conn);
@@ -1287,7 +1287,7 @@ test_close_intro_circuit_failure(void *arg)
   ocirc->build_state = tor_malloc_zero(sizeof(cpath_build_state_t));
   /* Code path will log this exit so build it. */
   ocirc->build_state->chosen_exit = extend_info_new("TestNickname", digest,
-                                                    NULL, NULL, NULL, &addr,
+                                                    NULL, NULL, &addr,
                                                     4242, NULL, false);
   ed25519_pubkey_copy(&ocirc->hs_ident->intro_auth_pk, &intro_kp.pubkey);
 
@@ -1314,7 +1314,7 @@ test_close_intro_circuit_failure(void *arg)
   ocirc->build_state = tor_malloc_zero(sizeof(cpath_build_state_t));
   /* Code path will log this exit so build it. */
   ocirc->build_state->chosen_exit = extend_info_new("TestNickname", digest,
-                                                    NULL, NULL, NULL, &addr,
+                                                    NULL, NULL, &addr,
                                                     4242, NULL, false);
   ed25519_pubkey_copy(&ocirc->hs_ident->intro_auth_pk, &intro_kp.pubkey);
 
@@ -1337,7 +1337,7 @@ test_close_intro_circuit_failure(void *arg)
   ocirc->build_state = tor_malloc_zero(sizeof(cpath_build_state_t));
   /* Code path will log this exit so build it. */
   ocirc->build_state->chosen_exit = extend_info_new("TestNickname", digest,
-                                                    NULL, NULL, NULL, &addr,
+                                                    NULL, NULL, &addr,
                                                     4242, NULL, false);
   ed25519_pubkey_copy(&ocirc->hs_ident->intro_auth_pk, &intro_kp.pubkey);
 

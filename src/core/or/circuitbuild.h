@@ -48,7 +48,6 @@ MOCK_DECL(int, circuit_all_predicted_ports_handled, (time_t now,
 
 int circuit_append_new_exit(origin_circuit_t *circ, extend_info_t *info);
 int circuit_extend_to_new_exit(origin_circuit_t *circ, extend_info_t *info);
-int circuit_can_use_tap(const origin_circuit_t *circ);
 int circuit_has_usable_onion_key(const origin_circuit_t *circ);
 const uint8_t *build_state_get_exit_rsa_id(cpath_build_state_t *state);
 MOCK_DECL(const node_t *,

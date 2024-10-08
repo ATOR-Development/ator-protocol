@@ -160,6 +160,10 @@ double cc_stats_circ_close_ss_cwnd_ma = 0;
 
 uint64_t cc_stats_circs_closed = 0;
 
+/** Total number of circuit protocol violation. This is incremented when the
+ * END_CIRC_REASON_TORPROTOCOL is used to close a circuit. */
+uint64_t circ_n_proto_violation = 0;
+
 /********* END VARIABLES ************/
 
 /* Implement circuit handle helpers. */
@@ -2196,6 +2200,10 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
   assert_circuit_ok(circ);
   tor_assert(line);
   tor_assert(file);
+
+  if (reason == END_CIRC_REASON_TORPROTOCOL) {
+    circ_n_proto_violation++;
+  }
 
   /* Check whether the circuitpadding subsystem wants to block this close */
   if (circpad_marked_circuit_for_padding(circ, reason)) {

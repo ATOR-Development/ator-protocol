@@ -389,7 +389,6 @@ circuit_open_connection_for_extend(const struct extend_cell_t *ec,
   circ->n_hop = extend_info_new(NULL /*nickname*/,
                                 (const char*)ec->node_id,
                                 &ec->ed_pubkey,
-                                NULL, /*onion_key*/
                                 NULL, /*curve25519_key*/
                                 &chosen_ap->addr,
                                 chosen_ap->port,
@@ -442,6 +441,12 @@ circuit_extend(struct cell_t *cell, struct circuit_t *circ)
     return -1;
 
   relay_header_unpack(&rh, cell->payload);
+
+  /* We no longer accept EXTEND messages; only EXTEND2. */
+  if (rh.command == RELAY_COMMAND_EXTEND) {
+    /* TODO: Should we log this? */
+    return -1;
+  }
 
   if (extend_cell_parse(&ec, rh.command,
                         cell->payload+RELAY_HEADER_SIZE,
@@ -579,8 +584,10 @@ onionskin_answer(struct or_circuit_t *circ,
 
   int used_create_fast = (created_cell->cell_type == CELL_CREATED_FAST);
 
-  append_cell_to_circuit_queue(TO_CIRCUIT(circ),
-                               circ->p_chan, &cell, CELL_DIRECTION_IN, 0);
+  if (append_cell_to_circuit_queue(TO_CIRCUIT(circ), circ->p_chan,
+                                   &cell, CELL_DIRECTION_IN, 0) < 0) {
+    return -1;
+  }
   log_debug(LD_CIRC,"Finished sending '%s' cell.",
             used_create_fast ? "created_fast" : "created");
 

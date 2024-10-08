@@ -90,7 +90,7 @@ const token_rule_t routerdesc_token_table[] = {
   T1_START( "router",        K_ROUTER,              GE(5),   NO_OBJ ),
   T01("ipv6-policy",         K_IPV6_POLICY,         CONCAT_ARGS, NO_OBJ),
   T1( "signing-key",         K_SIGNING_KEY,         NO_ARGS, NEED_KEY_1024 ),
-  T1( "onion-key",           K_ONION_KEY,           NO_ARGS, NEED_KEY_1024 ),
+  T01("onion-key",           K_ONION_KEY,           NO_ARGS, NEED_KEY_1024 ),
   T1("ntor-onion-key",       K_ONION_KEY_NTOR,      GE(1), NO_OBJ ),
   T1_END( "router-signature",    K_ROUTER_SIGNATURE,    NO_ARGS, NEED_OBJ ),
   T1( "published",           K_PUBLISHED,       CONCAT_ARGS, NO_OBJ ),
@@ -107,7 +107,7 @@ const token_rule_t routerdesc_token_table[] = {
   T1("identity-ed25519",     K_IDENTITY_ED25519,    NO_ARGS, NEED_OBJ ),
   T1("master-key-ed25519",   K_MASTER_KEY_ED25519,  GE(1),   NO_OBJ ),
   T1("router-sig-ed25519",   K_ROUTER_SIG_ED25519,  GE(1),   NO_OBJ ),
-  T1("onion-key-crosscert",  K_ONION_KEY_CROSSCERT, NO_ARGS, NEED_OBJ ),
+  T01("onion-key-crosscert", K_ONION_KEY_CROSSCERT, NO_ARGS, NEED_OBJ ),
   T1("ntor-onion-key-crosscert", K_NTOR_ONION_KEY_CROSSCERT,
                                                     EQ(1),   NEED_OBJ ),
 
@@ -595,15 +595,17 @@ router_parse_entry_from_string(const char *s, const char *end,
   if (parse_iso_time(tok->args[0], &router->cache_info.published_on) < 0)
     goto err;
 
-  tok = find_by_keyword(tokens, K_ONION_KEY);
-  if (!crypto_pk_public_exponent_ok(tok->key)) {
-    log_warn(LD_DIR,
-             "Relay's onion key had invalid exponent.");
-    goto err;
+  tok = find_opt_by_keyword(tokens, K_ONION_KEY);
+  if (tok) {
+    if (!crypto_pk_public_exponent_ok(tok->key)) {
+      log_warn(LD_DIR,
+               "Relay's onion key had invalid exponent.");
+      goto err;
+    }
+    router->tap_onion_pkey = tor_memdup(tok->object_body, tok->object_size);
+    router->tap_onion_pkey_len = tok->object_size;
+    crypto_pk_free(tok->key);
   }
-  router->onion_pkey = tor_memdup(tok->object_body, tok->object_size);
-  router->onion_pkey_len = tok->object_size;
-  crypto_pk_free(tok->key);
 
   if ((tok = find_opt_by_keyword(tokens, K_ONION_KEY_NTOR))) {
     curve25519_public_key_t k;
@@ -627,26 +629,68 @@ router_parse_entry_from_string(const char *s, const char *end,
   {
     directory_token_t *ed_sig_tok, *ed_cert_tok, *cc_tap_tok, *cc_ntor_tok,
       *master_key_tok;
-    ed_sig_tok = find_opt_by_keyword(tokens, K_ROUTER_SIG_ED25519);
-    ed_cert_tok = find_opt_by_keyword(tokens, K_IDENTITY_ED25519);
-    master_key_tok = find_opt_by_keyword(tokens, K_MASTER_KEY_ED25519);
+    ed_sig_tok = find_by_keyword(tokens, K_ROUTER_SIG_ED25519);
+    ed_cert_tok = find_by_keyword(tokens, K_IDENTITY_ED25519);
+    master_key_tok = find_by_keyword(tokens, K_MASTER_KEY_ED25519);
+    cc_ntor_tok = find_by_keyword(tokens, K_NTOR_ONION_KEY_CROSSCERT);
+    /* This, and only this, is optional. */
     cc_tap_tok = find_opt_by_keyword(tokens, K_ONION_KEY_CROSSCERT);
-    cc_ntor_tok = find_opt_by_keyword(tokens, K_NTOR_ONION_KEY_CROSSCERT);
-    int n_ed_toks = !!ed_sig_tok + !!ed_cert_tok +
-      !!cc_tap_tok + !!cc_ntor_tok;
-    if ((n_ed_toks != 0 && n_ed_toks != 4) ||
-        (n_ed_toks == 4 && !router->onion_curve25519_pkey)) {
-      log_warn(LD_DIR, "Router descriptor with only partial ed25519/"
-               "cross-certification support");
+
+    if (bool_neq(cc_tap_tok==NULL, router->tap_onion_pkey==NULL)) {
+      log_warn(LD_DIR, "Router descriptor had only one of (onion-key, "
+               "onion-key-crosscert).");
       goto err;
     }
-    if (master_key_tok && !ed_sig_tok) {
-      log_warn(LD_DIR, "Router descriptor has ed25519 master key but no "
-               "certificate");
+
+    IF_BUG_ONCE(! (ed_sig_tok && ed_cert_tok&& cc_ntor_tok &&master_key_tok)) {
       goto err;
     }
-    if (ed_sig_tok) {
-      tor_assert(ed_cert_tok && cc_tap_tok && cc_ntor_tok);
+
+    tor_cert_t *cert;
+    {
+      /* Parse the identity certificate */
+      cert = tor_cert_parse(
+                       (const uint8_t*)ed_cert_tok->object_body,
+                       ed_cert_tok->object_size);
+      if (! cert) {
+        log_warn(LD_DIR, "Couldn't parse ed25519 cert");
+        goto err;
+      }
+      /* makes sure it gets freed. */
+      router->cache_info.signing_key_cert = cert;
+
+      if (cert->cert_type != CERT_TYPE_ID_SIGNING ||
+          ! cert->signing_key_included) {
+        log_warn(LD_DIR, "Invalid form for ed25519 cert");
+        goto err;
+      }
+    }
+
+    if (cc_tap_tok) {
+      rsa_pubkey = router_get_rsa_onion_pkey(router->tap_onion_pkey,
+                                             router->tap_onion_pkey_len);
+      if (rsa_pubkey == NULL) {
+        log_warn(LD_DIR, "No pubkey for TAP cross-verification.");
+        goto err;
+      }
+      if (strcmp(cc_tap_tok->object_type, "CROSSCERT")) {
+        log_warn(LD_DIR, "Wrong object type on onion-key-crosscert "
+                 "in descriptor");
+        goto err;
+      }
+      if (check_tap_onion_key_crosscert(
+                      (const uint8_t*)cc_tap_tok->object_body,
+                      (int)cc_tap_tok->object_size,
+                      rsa_pubkey,
+                      &cert->signing_key,
+                      (const uint8_t*)router->cache_info.identity_digest)<0) {
+        log_warn(LD_DIR, "Incorrect TAP cross-verification");
+        goto err;
+      }
+    }
+
+    {
+      tor_assert(ed_sig_tok && ed_cert_tok && cc_ntor_tok);
       const int ed_cert_token_pos = smartlist_pos(tokens, ed_cert_tok);
       if (ed_cert_token_pos == -1 || router_token_pos == -1 ||
           (ed_cert_token_pos != router_token_pos + 1 &&
@@ -668,35 +712,14 @@ router_parse_entry_from_string(const char *s, const char *end,
                  "in descriptor");
         goto err;
       }
-      if (strcmp(cc_tap_tok->object_type, "CROSSCERT")) {
-        log_warn(LD_DIR, "Wrong object type on onion-key-crosscert "
-                 "in descriptor");
-        goto err;
-      }
       if (strcmp(cc_ntor_tok->args[0], "0") &&
           strcmp(cc_ntor_tok->args[0], "1")) {
         log_warn(LD_DIR, "Bad sign bit on ntor-onion-key-crosscert");
         goto err;
       }
       int ntor_cc_sign_bit = !strcmp(cc_ntor_tok->args[0], "1");
-
       uint8_t d256[DIGEST256_LEN];
       const char *signed_start, *signed_end;
-      tor_cert_t *cert = tor_cert_parse(
-                       (const uint8_t*)ed_cert_tok->object_body,
-                       ed_cert_tok->object_size);
-      if (! cert) {
-        log_warn(LD_DIR, "Couldn't parse ed25519 cert");
-        goto err;
-      }
-      /* makes sure it gets freed. */
-      router->cache_info.signing_key_cert = cert;
-
-      if (cert->cert_type != CERT_TYPE_ID_SIGNING ||
-          ! cert->signing_key_included) {
-        log_warn(LD_DIR, "Invalid form for ed25519 cert");
-        goto err;
-      }
 
       if (master_key_tok) {
         /* This token is optional, but if it's present, it must match
@@ -746,6 +769,7 @@ router_parse_entry_from_string(const char *s, const char *end,
       crypto_digest_add_bytes(d, ED_DESC_SIGNATURE_PREFIX,
         strlen(ED_DESC_SIGNATURE_PREFIX));
       crypto_digest_add_bytes(d, signed_start, signed_end-signed_start);
+
       crypto_digest_get_digest(d, (char*)d256, sizeof(d256));
       crypto_digest_free(d);
 
@@ -773,18 +797,6 @@ router_parse_entry_from_string(const char *s, const char *end,
 
       if (ed25519_checksig_batch(check_ok, check, 3) < 0) {
         log_warn(LD_DIR, "Incorrect ed25519 signature(s)");
-        goto err;
-      }
-
-      rsa_pubkey = router_get_rsa_onion_pkey(router->onion_pkey,
-                                             router->onion_pkey_len);
-      if (check_tap_onion_key_crosscert(
-                      (const uint8_t*)cc_tap_tok->object_body,
-                      (int)cc_tap_tok->object_size,
-                      rsa_pubkey,
-                      &cert->signing_key,
-                      (const uint8_t*)router->cache_info.identity_digest)<0) {
-        log_warn(LD_DIR, "Incorrect TAP cross-verification");
         goto err;
       }
 

@@ -144,7 +144,7 @@ sslProto = open(ff('security/nss/lib/ssl/sslproto.h'), 'r')
 sslProtoD = {}
 
 for line in sslProto:
-    m = re.match('#define\s+(\S+)\s+(\S+)', line)
+    m = re.match(r'#define\s+(\S+)\s+(\S+)', line)
     if m:
         key, value = m.groups()
         sslProtoD[key] = value
@@ -165,7 +165,7 @@ for fl in oSSLinclude:
         continue
     fp = open(fname, 'r')
     for line in fp.readlines():
-        m = re.match('# *define\s+(\S+)\s+(\S+)', line)
+        m = re.match(r'# *define\s+(\S+)\s+(\S+)', line)
         if m:
             value,key = m.groups()
             if key.startswith('0x') and "_CK_" in value:

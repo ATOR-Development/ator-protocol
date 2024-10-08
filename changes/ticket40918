@@ -1,0 +1,3 @@
+  o Minor bugfix (relay, sandbox):
+    - Disable a sandbox unit test that is failing on Debian Sid breaking our
+      nightly packages. Fixes bug 40918; bugfix on 0.3.5.1-alpha.

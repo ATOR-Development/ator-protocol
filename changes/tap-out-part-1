@@ -1,0 +1,12 @@
+  o Removed features (obsolete):
+    - Relays no longer support the obsolete TAP circuit extension
+      protocol. (For backward compatibility, however, relays still continue to
+      include TAP keys in their descriptors.) Implements part
+      of proposal 350.
+    - Removed some vestigial code for selecting the TAP circuit extension
+      protocol.
+
+  o Minor features (forward-compatibility):
+    - We now correctly parse microdescriptors and router descriptors
+      that do not include TAP onion keys. (For backward compatibility,
+      authorities continue to require these keys.) Implements part of proposal 350.

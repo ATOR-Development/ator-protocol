@@ -115,6 +115,8 @@ conflux_leg_t *
 conflux_get_leg(conflux_t *cfx, const circuit_t *circ)
 {
   conflux_leg_t *leg_found = NULL;
+  tor_assert(cfx);
+  tor_assert(cfx->legs);
 
   // Find the leg that the cell is written on
   CONFLUX_FOR_EACH_LEG_BEGIN(cfx, leg) {
@@ -529,7 +531,10 @@ conflux_note_cell_sent(conflux_t *cfx, circuit_t *circ, uint8_t relay_command)
   }
 
   leg = conflux_get_leg(cfx, circ);
-  tor_assert(leg);
+  if (leg == NULL) {
+    log_fn(LOG_PROTOCOL_WARN, LD_BUG, "No Conflux leg after sending a cell");
+    return;
+  }
 
   leg->last_seq_sent++;
 

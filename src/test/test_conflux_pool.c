@@ -349,7 +349,7 @@ simulate_single_hop_extend(origin_circuit_t *client, int exit)
 
   hop->extend_info = extend_info_new(
           exit ? "exit" : "non-exit",
-          digest, NULL, NULL, NULL,
+          digest, NULL, NULL,
           &addr, exit, NULL, exit);
 
   cpath_init_circuit_crypto(hop, whatevs_key, sizeof(whatevs_key), 0, 0);

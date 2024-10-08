@@ -33,10 +33,13 @@ struct routerinfo_t {
   /**
    * Public RSA TAP key for onions, ASN.1 encoded.  We store this
    * in its encoded format since storing it as a crypto_pk_t uses
-   * significantly more memory. */
-  char *onion_pkey;
+   * significantly more memory.
+   *
+   * This may be absent.
+   */
+  char *tap_onion_pkey;
   /** Length of onion_pkey, in bytes. */
-  size_t onion_pkey_len;
+  size_t tap_onion_pkey_len;
 
   crypto_pk_t *identity_pkey;  /**< Public RSA key for signing. */
   /** Public curve25519 key for onions */

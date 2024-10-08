@@ -63,14 +63,6 @@ struct microdesc_t {
 
   /* Fields in the microdescriptor. */
 
-  /**
-   * Public RSA TAP key for onions, ASN.1 encoded.  We store this
-   * in its encoded format since storing it as a crypto_pk_t uses
-   * significantly more memory. */
-  char *onion_pkey;
-  /** Length of onion_pkey, in bytes. */
-  size_t onion_pkey_len;
-
   /** As routerinfo_t.onion_curve25519_pkey */
   struct curve25519_public_key_t *onion_curve25519_pkey;
   /** Ed25519 identity key, if included. */

@@ -33,7 +33,6 @@ extend_info_t *
 extend_info_new(const char *nickname,
                 const char *rsa_id_digest,
                 const ed25519_public_key_t *ed_id,
-                crypto_pk_t *onion_key,
                 const curve25519_public_key_t *ntor_key,
                 const tor_addr_t *addr, uint16_t port,
                 const protover_summary_flags_t *pv,
@@ -46,8 +45,6 @@ extend_info_new(const char *nickname,
     memcpy(&info->ed_identity, ed_id, sizeof(ed25519_public_key_t));
   if (nickname)
     strlcpy(info->nickname, nickname, sizeof(info->nickname));
-  if (onion_key)
-    info->onion_key = crypto_pk_dup_key(onion_key);
   if (ntor_key)
     memcpy(&info->curve25519_onion_key, ntor_key,
            sizeof(curve25519_public_key_t));
@@ -100,7 +97,6 @@ extend_info_t *
 extend_info_from_node(const node_t *node, int for_direct_connect,
                       bool for_exit)
 {
-  crypto_pk_t *rsa_pubkey = NULL;
   extend_info_t *info = NULL;
   tor_addr_port_t ap;
   int valid_addr = 0;
@@ -149,13 +145,11 @@ extend_info_from_node(const node_t *node, int for_direct_connect,
   /* Retrieve the curve25519 pubkey. */
   const curve25519_public_key_t *curve_pubkey =
     node_get_curve25519_onion_key(node);
-  rsa_pubkey = node_get_rsa_onion_key(node);
 
   if (valid_addr && node->ri) {
     info = extend_info_new(node->ri->nickname,
                            node->identity,
                            ed_pubkey,
-                           rsa_pubkey,
                            curve_pubkey,
                            &ap.addr,
                            ap.port,
@@ -165,7 +159,6 @@ extend_info_from_node(const node_t *node, int for_direct_connect,
     info = extend_info_new(node->rs->nickname,
                            node->identity,
                            ed_pubkey,
-                           rsa_pubkey,
                            curve_pubkey,
                            &ap.addr,
                            ap.port,
@@ -173,7 +166,6 @@ extend_info_from_node(const node_t *node, int for_direct_connect,
                            for_exit);
   }
 
-  crypto_pk_free(rsa_pubkey);
   return info;
 }
 
@@ -183,7 +175,6 @@ extend_info_free_(extend_info_t *info)
 {
   if (!info)
     return;
-  crypto_pk_free(info->onion_key);
   tor_free(info);
 }
 
@@ -196,20 +187,7 @@ extend_info_dup(extend_info_t *info)
   tor_assert(info);
   newinfo = tor_malloc(sizeof(extend_info_t));
   memcpy(newinfo, info, sizeof(extend_info_t));
-  if (info->onion_key)
-    newinfo->onion_key = crypto_pk_dup_key(info->onion_key);
-  else
-    newinfo->onion_key = NULL;
   return newinfo;
-}
-
-/* Does ei have a valid TAP key? */
-int
-extend_info_supports_tap(const extend_info_t* ei)
-{
-  tor_assert(ei);
-  /* Valid TAP keys are not NULL */
-  return ei->onion_key != NULL;
 }
 
 /* Does ei have a valid ntor key? */

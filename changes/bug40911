@@ -1,0 +1,5 @@
+  o Minor bugfixes (compiler warnings):
+    - Make sure the two bitfields in the half-closed edge struct are
+      unsigned, as we're using them for boolean values and assign 1 to
+      them. Fixes bug 40911; bugfix on 0.4.7.2-alpha.
+

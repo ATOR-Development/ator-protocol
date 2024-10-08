@@ -2169,7 +2169,7 @@ select_primary_guard_for_circuit(guard_selection_t *gs,
             static ratelim_t guardlog = RATELIM_INIT(60);
             log_fn_ratelim(&guardlog, LOG_NOTICE, LD_GUARD,
                            "All current guards excluded by path restriction "
-                           "type %d; using an additonal guard.",
+                           "type %d; using an additional guard.",
                            rst->type);
           } else {
             break;

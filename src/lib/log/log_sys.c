@@ -41,7 +41,7 @@ logging_metrics_get_stores(void)
   metrics_store_entry_t *sentry = metrics_store_add(
       the_store,
       METRICS_TYPE_COUNTER,
-      METRICS_NAME(bug_reached),
+      METRICS_NAME(bug_reached_count),
       "Total number of BUG() and similar assertion reached",
       0, NULL);
   metrics_store_entry_update(sentry, tor_bug_get_count());

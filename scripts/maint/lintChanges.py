@@ -51,7 +51,7 @@ def split_tor_version(version):
 
     If the version is malformed, returns None.
     '''
-    version_match = re.match('([0-9]+)\.([0-9]+)\.([0-9]+)(\.([0-9]+))?', version)
+    version_match = re.match(r'([0-9]+)\.([0-9]+)\.([0-9]+)(\.([0-9]+))?', version)
     if version_match is None:
         return None
 
@@ -120,13 +120,13 @@ def lintfile(fname):
     if re.search(r'[bB]ug (\d+)', contents):
         if not re.search(r'[Bb]ugfix on ', contents):
             warn("Bugfix does not say 'bugfix on X.Y.Z'")
-        elif not re.search('[fF]ixes ([a-z ]*)bugs? (\d+)((, \d+)* and \d+)?; bugfix on ',
+        elif not re.search(r'[fF]ixes ([a-z ]*)bugs? (\d+)((, \d+)* and \d+)?; bugfix on ',
                            contents):
             warn("Bugfix does not say 'Fixes bug X; bugfix on Y'")
         elif re.search('tor-([0-9]+)', contents):
             warn("Do not prefix versions with 'tor-'. ('0.1.2', not 'tor-0.1.2'.)")
         else:
-            bugfix_match = re.search('bugfix on ([0-9]+\.[0-9]+\.[0-9]+)', contents)
+            bugfix_match = re.search(r'bugfix on ([0-9]+\.[0-9]+\.[0-9]+)', contents)
             if bugfix_match is None:
                 warn("Versions must have at least 3 digits. ('0.1.2', '0.3.4.8', or '0.3.5.1-alpha'.)")
             elif bugfix_match.group(0) is None:

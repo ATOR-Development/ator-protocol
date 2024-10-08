@@ -26,7 +26,6 @@ struct onion_handshake_state_t {
   uint16_t tag;
   union {
     struct fast_handshake_state_t *fast;
-    struct crypto_dh_t *tap;
     struct ntor_handshake_state_t *ntor;
     struct ntor3_handshake_state_t *ntor3;
   } u;

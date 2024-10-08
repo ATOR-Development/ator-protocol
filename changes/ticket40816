@@ -1,0 +1,4 @@
+  o Minor feature (metrics port, relay):
+    - Add new metrics for relays on the MetricsPort namely the count of drop
+      cell, destroy cell and the number of circuit protocol violation seen that
+      lead to a circuit close. Closes ticket 40816.
